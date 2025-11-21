@@ -130,7 +130,6 @@ KCS603_2020_PYQ.pdf
 
 ## Known Limitations
 
-- **notesgallery.com blocks bots** with 403 errors occasionally. The tool rotates User-Agents automatically to handle this.
 - Some PDFs may be hosted on Google Drive; those are flagged but require manual download.
 - The subject database is pre-built and may not cover all subjects. For unlisted subjects, the tool falls back to a live Google site-search.
 
