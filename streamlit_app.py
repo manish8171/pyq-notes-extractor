@@ -245,7 +245,7 @@ def create_zip(links):
 
 # --- UI ---
 st.title("📚 AKTU PYQ Extractor")
-st.markdown("Easily search and find Previous Year Question papers from notesgallery.com.")
+st.markdown("Easily search and find Previous Year Question papers.")
 
 subject = st.text_input("Enter Subject Name (e.g., 'Machine Learning', 'Data Structures')")
 
