@@ -4,7 +4,6 @@
 ║              PYQ EXTRACTOR - by Manish Dhangar            ║
 ║        AKTU Previous Year Question Paper Downloader       ║
 ╚═══════════════════════════════════════════════════════════╝
-Target: notesgallery.com
 """
 
 import os
@@ -16,12 +15,14 @@ from urllib.parse import urljoin, urlparse, quote
 
 # ── AUTO-INSTALLER ────────────────────────────────────────────────────────────
 REQUIRED_PACKAGES = {
-    "requests":    "requests",
-    "bs4":         "beautifulsoup4",
-    "fuzzywuzzy":  "fuzzywuzzy",
-    "Levenshtein": "python-Levenshtein",
-    "rich":        "rich",
-    "lxml":        "lxml",
+    "requests":      "requests",
+    "bs4":           "beautifulsoup4",
+    "fuzzywuzzy":    "fuzzywuzzy",
+    "Levenshtein":   "python-Levenshtein",
+    "rich":          "rich",
+    "lxml":          "lxml",
+    "cloudscraper":  "cloudscraper",
+    "gdown":         "gdown",
 }
 
 def install_packages():
@@ -44,7 +45,7 @@ def install_packages():
 
 install_packages()
 
-import requests
+import cloudscraper
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from rich.console import Console
@@ -57,28 +58,17 @@ from rich import box
 console = Console()
 BASE_URL = "https://notesgallery.com"
 
-USER_AGENTS = [
-    "Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
-]
-_ua_idx = 0
 
 def make_session():
-    global _ua_idx
-    s = requests.Session()
-    s.headers.update({
-        "User-Agent": USER_AGENTS[_ua_idx % len(USER_AGENTS)],
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-        "Referer": BASE_URL + "/",
-    })
-    _ua_idx += 1
-    return s
+    """
+    cloudscraper mimics a real Firefox TLS fingerprint — bypasses Cloudflare.
+    Using windows/firefox to match the working Streamlit deployment.
+    """
+    scraper = cloudscraper.create_scraper(
+        browser={"browser": "firefox", "platform": "windows", "mobile": False}
+    )
+    scraper.headers.update({"Referer": BASE_URL + "/"})
+    return scraper
 
 # Subject code lookup
 SUBJECT_CODES = {
@@ -116,7 +106,7 @@ def get_code(title):
 # ── NETWORK HELPERS ───────────────────────────────────────────────────────────
 
 def fetch(url, session=None, retries=3):
-    """Fetch a URL with retry + UA rotation. Returns response or None."""
+    """Fetch a URL with retry. cloudscraper handles Cloudflare automatically."""
     for attempt in range(retries):
         try:
             s = session or make_session()
@@ -124,22 +114,22 @@ def fetch(url, session=None, retries=3):
             if resp.status_code == 200:
                 return resp
             elif resp.status_code == 403:
-                console.print(f"[yellow]  [!] 403 attempt {attempt+1}, rotating UA...[/yellow]")
+                console.print(f"[yellow]  [!] 403 on attempt {attempt+1}, retrying...[/yellow]")
                 time.sleep(2 + attempt * 2)
             else:
                 console.print(f"[yellow]  [!] HTTP {resp.status_code} — {url}[/yellow]")
                 return None
-        except requests.RequestException as e:
+        except Exception as e:
             console.print(f"[red]  [!] Network error: {e}[/red]")
             time.sleep(2)
     return None
 
 
 def seed_session(s):
-    """Hit homepage first to get cookies — reduces 403s."""
+    """Warm up the cloudscraper session with a homepage hit."""
     try:
         s.get(BASE_URL + "/", timeout=8)
-        time.sleep(1.0)
+        time.sleep(0.5)
     except Exception:
         pass
 
@@ -147,7 +137,7 @@ def seed_session(s):
 # ── SEARCH ────────────────────────────────────────────────────────────────────
 
 def search_on_site(query):
-    """WordPress ?s= search on notesgallery.com."""
+    """Search the source site."""
     search_url = f"{BASE_URL}/?s={quote(query)}"
     s = make_session()
     seed_session(s)
@@ -224,7 +214,7 @@ def is_real_pyq_link(href, text):
     """
     Return True only if this link is a real downloadable PYQ.
     Accepts: Google Drive, direct .pdf, or any file-hosting link.
-    Rejects: plain internal notesgallery page links.
+    Rejects: plain internal page links.
     """
     hl = href.lower()
 
@@ -238,25 +228,13 @@ def is_real_pyq_link(href, text):
                                "mega.nz", "box.com", "1drv.ms"]):
         return True
 
-    # Internal notesgallery link — only keep if it clearly points to
-    # a specific paper page (has a year pattern or "pyq" in path)
-    if "notesgallery.com" in hl:
-        # e.g. /mlt-2022-23/ or /mlt-pyq-2021/
-        if re.search(r"20\d{2}", hl) or re.search(r"pyq(?!s)", hl):
-            return True
-        return False
-
-    # External link with year in URL — likely a paper
-    if re.search(r"20(1[8-9]|2[0-9])", hl):
-        return True
-
     return False
 
 
 def get_link_name(a_tag, index):
     """Best possible display name for a link."""
     text = a_tag.get_text(strip=True)
-    generic = {"download", "click here", "here", "pdf", "link", "open", "view", "", "odd", "even"}
+    generic = {"download", "click here", "here", "pdf", "link", "open", "view", ""}
     if text.lower() not in generic and len(text) > 2:
         return text
 
@@ -464,7 +442,7 @@ def run():
 
         # ── 1. Search ──────────────────────────────────────────────────────
         console.print(f"\n[bold white]  Searching:[/bold white] [cyan]'{query}'[/cyan]")
-        with console.status("[yellow]  Contacting server...[/yellow]"):
+        with console.status("[yellow]  Searching...[/yellow]"):
             results = search_on_site(query)
 
         if not results:
