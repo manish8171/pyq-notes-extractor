@@ -19,19 +19,16 @@ USER_AGENTS = [
 _ua_idx = 0
 
 def make_session():
-    global _ua_idx
-    s = requests.Session()
-    s.headers.update({
-        "User-Agent": USER_AGENTS[_ua_idx % len(USER_AGENTS)],
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
+    import cloudscraper
+    scraper = cloudscraper.create_scraper(browser={
+        'browser': 'firefox',
+        'platform': 'windows',
+        'mobile': False
+    })
+    scraper.headers.update({
         "Referer": BASE_URL + "/",
     })
-    _ua_idx += 1
-    return s
+    return scraper
 
 def fetch(url, session=None, retries=3):
     for attempt in range(retries):
