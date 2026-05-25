@@ -1,7 +1,7 @@
 # PYQ Extractor 🎯
 ### AKTU Previous Year Question Paper Downloader
-**Source:** [notesgallery.com](https://notesgallery.com)  
-**Built by:** Manish Dhangar | CSE-AI | IIMT College, Greater Noida
+
+**Built by:** Manish Dhangar | CSE-AI 
 
 ---
 
@@ -11,7 +11,7 @@ PYQ Extractor is a CLI tool that:
 1. Takes a subject name as input (exact or approximate)
 2. Fuzzy-matches it against a built-in AKTU subject database
 3. Shows you matching subjects with subject codes and year info
-4. After your confirmation, scrapes **notesgallery.com** for all available PYQ PDFs
+4. After your confirmation, scrapes the source for all available PYQ PDFs
 5. Downloads them to `~/Downloads/PYQ_Extractor/<SubjectName>/`
 
 ---
@@ -142,7 +142,7 @@ Edit `SUBJECTS_DB` in `pyq_extractor.py`:
 ```python
 "Your Subject Name": {
 	"code": "KCSXXX",
-	"slug": "url-slug-on-notesgallery",  # e.g., "2nd-year-aktu-pyqs-yoursubject"
+	"slug": "url-slug-on-source",  # e.g., "2nd-year-aktu-pyqs-yoursubject"
 	"year": "2nd"
 },
 ```
@@ -151,7 +151,7 @@ Edit `SUBJECTS_DB` in `pyq_extractor.py`:
 
 ## Legal Note
 
-This tool is for **personal educational use only**. PYQ PDFs from notesgallery.com are freely available on that website. This tool simply automates the process of finding and downloading them. Do not redistribute scraped content.
+This tool is for **personal educational use only**. PYQ PDFs are freely available on the internet. This tool simply automates the process of finding and downloading them. Do not redistribute scraped content.
 
 ---
 
